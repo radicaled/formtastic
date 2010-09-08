@@ -1,3 +1,12 @@
+puts "
+---------------------------------------------------------
+WARNING:
+You're bundling the rails3 branch of Formtastic, which is no longer under development and will be removed very soon.
+Please modify your Gemfile to use the Formtastic 1.1.0 gem, or to use another branch, like master or 1.1-stable.
+---------------------------------------------------------
+
+"
+
 # coding: utf-8
 require File.join(File.dirname(__FILE__), *%w[formtastic i18n])
 require File.join(File.dirname(__FILE__), *%w[formtastic util])
