@@ -2,6 +2,7 @@
 require File.join(File.dirname(__FILE__), *%w[formtastic i18n])
 require File.join(File.dirname(__FILE__), *%w[formtastic util])
 require File.join(File.dirname(__FILE__), *%w[formtastic railtie]) if defined?(::Rails::Railtie)
+require File.join(File.dirname(__FILE__), %w[orm mongoid])         if defined?(Mongoid)
 
 module Formtastic #:nodoc:
 
@@ -48,6 +49,10 @@ module Formtastic #:nodoc:
     RESERVED_COLUMNS = [:created_at, :updated_at, :created_on, :updated_on, :lock_version, :version]
 
     INLINE_ERROR_TYPES = [:sentence, :list, :first]
+
+    HAS_MANY_RELATIONSHIP_TYPES = [:has_many, :has_and_belongs_to_many, :references_many, :references_and_referenced_in_many]
+
+    BELONGS_TO_RELATIONSHIP_TYPES = [:belongs_to, :referenced_in]
 
     attr_accessor :template
 
@@ -293,7 +298,7 @@ module Formtastic #:nodoc:
         field_set_and_list_wrapping(*(args << html_options), &block)
       else
         if @object && args.empty?
-          args  = association_columns(:belongs_to)
+          args  = association_columns(*BELONGS_TO_RELATIONSHIP_TYPES)
           args += content_columns
           args -= RESERVED_COLUMNS
           args.compact!
@@ -502,7 +507,7 @@ module Formtastic #:nodoc:
         @methods_for_error[method] ||= begin
           methods_for_error = [method.to_sym]
           methods_for_error << file_metadata_suffixes.map{|suffix| "#{method}_#{suffix}".to_sym} if is_file?(method, options)
-          methods_for_error << [association_primary_key(method)] if association_macro_for_method(method) == :belongs_to
+          methods_for_error << [association_primary_key(method)] if BELONGS_TO_RELATIONSHIP_TYPES.include?(association_macro_for_method(method))
           methods_for_error.flatten.compact.uniq
         end
       end
@@ -813,7 +818,7 @@ module Formtastic #:nodoc:
         html_options.delete(:multiple) if html_options[:multiple].nil?
 
         reflection = reflection_for(method)
-        if reflection && [ :has_many, :has_and_belongs_to_many ].include?(reflection.macro)
+        if reflection && HAS_MANY_RELATIONSHIP_TYPES.include?(reflection.macro)
           html_options[:multiple] = true if html_options[:multiple].nil?
           html_options[:size]     ||= 5
           options[:include_blank] ||= false
@@ -1618,7 +1623,7 @@ module Formtastic #:nodoc:
       #
       def generate_association_input_name(method) #:nodoc:
         if reflection = reflection_for(method)
-          if [:has_and_belongs_to_many, :has_many].include?(reflection.macro)
+          if HAS_MANY_RELATIONSHIP_TYPES.include?(reflection.macro)
             "#{method.to_s.singularize}_ids"
           elsif reflection.respond_to? :foreign_key
             reflection.foreign_key
